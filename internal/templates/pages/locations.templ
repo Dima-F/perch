@@ -1,0 +1,46 @@
+package pages
+
+import (
+	"perch/internal/models"
+	"perch/internal/templates/layouts"
+)
+
+templ LocationsList(locations []models.Location) {
+	@layouts.Base("Локації") {
+		<h1>Локації</h1>
+		<table>
+			<thead>
+				<tr>
+					<th>Назва</th>
+					<th>Регіон</th>
+					<th>Водойма</th>
+					<th>Тип</th>
+					<th>Нотатки</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, l := range locations {
+					<tr>
+						<td>{ l.Name }</td>
+						<td>{ l.Region }</td>
+						<td>
+							if l.WaterBody != nil {
+								{ l.WaterBody.Name }
+							}
+						</td>
+						<td>
+							if l.WaterBody != nil {
+								{ l.WaterBody.Type }
+							}
+						</td>
+						<td>
+							if l.Notes != nil {
+								{ *l.Notes }
+							}
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}

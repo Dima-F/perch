@@ -1,0 +1,55 @@
+package pages
+
+import (
+	"fmt"
+	"perch/internal/models"
+	"perch/internal/templates/layouts"
+)
+
+templ CatchesList(catches []models.Catch) {
+	@layouts.Base("Улови") {
+		<h1>Всі улови</h1>
+		if len(catches) == 0 {
+			<p>Уловів ще немає</p>
+		} else {
+			<table>
+				<thead>
+					<tr>
+						<th>Риба</th>
+						<th>К-сть</th>
+						<th>Макс. довжина</th>
+						<th>Приманка</th>
+						<th>Оснастка</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, c := range catches {
+						<tr>
+							<td>
+								if c.Fish != nil {
+									{ c.Fish.Name }
+								}
+							</td>
+							<td>{ fmt.Sprintf("%d", c.Count) }</td>
+							<td>
+								if c.MaxLengthCm != nil {
+									{ fmt.Sprintf("%.1f см", *c.MaxLengthCm) }
+								}
+							</td>
+							<td>
+								if c.Lure != nil && c.Lure.LureModel != nil {
+									{ c.Lure.LureModel.Name }
+								}
+							</td>
+							<td>
+								if c.JigSetup != nil {
+									{ *c.JigSetup }
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
+	}
+}

@@ -1,0 +1,138 @@
+package pages
+
+import (
+	"fmt"
+	"perch/internal/models"
+	"perch/internal/templates/layouts"
+)
+
+templ SessionsList(sessions []struct {
+	models.FishingSession
+	CatchCount int
+}) {
+	@layouts.Base("Сесії") {
+		<h1>Рибальські сесії</h1>
+		<table>
+			<thead>
+				<tr>
+					<th>Дата</th>
+					<th>Початок</th>
+					<th>Кінець</th>
+					<th>Улови</th>
+					<th>Нотатки</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, s := range sessions {
+					<tr>
+						<td>
+							<a href={ templ.SafeURL(fmt.Sprintf("/sessions/%d", s.ID)) }>
+								{ s.StartTime.Format("02.01.2006") }
+							</a>
+						</td>
+						<td>{ s.StartTime.Format("15:04") }</td>
+						<td>
+							if s.EndTime != nil {
+								{ s.EndTime.Format("15:04") }
+							} else {
+								—
+							}
+						</td>
+						<td>{ fmt.Sprintf("%d", s.CatchCount) }</td>
+						<td>
+							if s.Notes != nil {
+								{ *s.Notes }
+							}
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}
+
+templ SessionDetail(session *models.FishingSession, catches []models.Catch, locations []models.Location) {
+	@layouts.Base("Сесія") {
+		<h1>Сесія { session.StartTime.Format("02.01.2006") }</h1>
+		<p>
+			<strong>Початок:</strong> { session.StartTime.Format("15:04") }
+			if session.EndTime != nil {
+				— <strong>Кінець:</strong> { session.EndTime.Format("15:04") }
+			}
+		</p>
+		if session.Notes != nil {
+			<p>{ *session.Notes }</p>
+		}
+		<h2>Локації</h2>
+		if len(locations) == 0 {
+			<p>Немає локацій</p>
+		} else {
+			<ul>
+				for _, l := range locations {
+					<li>{ l.Name } ({ l.Region })</li>
+				}
+			</ul>
+		}
+		<h2>Улови</h2>
+		if len(catches) == 0 {
+			<p>Немає уловів</p>
+		} else {
+			<table>
+				<thead>
+					<tr>
+						<th>Риба</th>
+						<th>К-сть</th>
+						<th>Ср. довжина</th>
+						<th>Макс. довжина</th>
+						<th>Вага (г)</th>
+						<th>Приманка</th>
+						<th>Оснастка</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, c := range catches {
+						<tr>
+							<td>
+								if c.Fish != nil {
+									{ c.Fish.Name }
+								}
+							</td>
+							<td>{ fmt.Sprintf("%d", c.Count) }</td>
+							<td>
+								if c.AvgLengthCm != nil {
+									{ fmt.Sprintf("%.1f см", *c.AvgLengthCm) }
+								}
+							</td>
+							<td>
+								if c.MaxLengthCm != nil {
+									{ fmt.Sprintf("%.1f см", *c.MaxLengthCm) }
+								}
+							</td>
+							<td>
+								if c.WeightG != nil {
+									{ fmt.Sprintf("%d", *c.WeightG) }
+								}
+							</td>
+							<td>
+								if c.Lure != nil && c.Lure.LureModel != nil {
+									{ c.Lure.LureModel.Name }
+									if c.Lure.Color != nil {
+										({ *c.Lure.Color })
+									}
+								}
+							</td>
+							<td>
+								if c.JigSetup != nil {
+									{ *c.JigSetup }
+									if c.JigWeightG != nil {
+										{ fmt.Sprintf(" %.1fг", *c.JigWeightG) }
+									}
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
+	}
+}

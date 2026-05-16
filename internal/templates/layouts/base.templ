@@ -1,0 +1,25 @@
+package layouts
+
+templ Base(title string) {
+	<!DOCTYPE html>
+	<html lang="uk">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ title } — Perch</title>
+			<script src="https://unpkg.com/htmx.org@2.0.3"></script>
+			<link rel="stylesheet" href="/static/css/style.css"/>
+		</head>
+		<body>
+			<nav>
+				<a href="/">Сесії</a>
+				<a href="/catches">Улови</a>
+				<a href="/locations">Локації</a>
+				<a href="/lures">Приманки</a>
+			</nav>
+			<main>
+				{ children... }
+			</main>
+		</body>
+	</html>
+}

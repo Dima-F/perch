@@ -1,0 +1,61 @@
+package pages
+
+import (
+	"fmt"
+	"perch/internal/models"
+	"perch/internal/templates/layouts"
+)
+
+templ LuresList(lures []models.Lure) {
+	@layouts.Base("Приманки") {
+		<h1>Приманки</h1>
+		<table>
+			<thead>
+				<tr>
+					<th>Модель</th>
+					<th>Бренд</th>
+					<th>Тип</th>
+					<th>Колір</th>
+					<th>Розмір</th>
+					<th>Вага (г)</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, l := range lures {
+					<tr>
+						<td>
+							if l.LureModel != nil {
+								{ l.LureModel.Name }
+							}
+						</td>
+						<td>
+							if l.LureModel != nil && l.LureModel.Brand != nil {
+								{ l.LureModel.Brand.Name }
+							}
+						</td>
+						<td>
+							if l.LureModel != nil && l.LureModel.LureType != nil {
+								{ l.LureModel.LureType.Name }
+							}
+						</td>
+						<td>
+							if l.Color != nil {
+								{ *l.Color }
+							}
+						</td>
+						<td>
+							if l.Size != nil {
+								{ *l.Size }
+							}
+						</td>
+						<td>
+							if l.WeightG != nil {
+								{ fmt.Sprintf("%.1f", *l.WeightG) }
+							}
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}
