@@ -13,10 +13,11 @@ func NewLocations(db *sql.DB) *LocationsRepo { return &LocationsRepo{db: db} }
 func (r *LocationsRepo) List(ctx context.Context) ([]models.Location, error) {
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT l.id, l.name, l.region, l.notes, l.waterbody_id,
-		       w.name, w.type
+		       w.name, wbt.name
 		FROM locations l
 		JOIN water_body w ON w.id = l.waterbody_id
-		ORDER BY l.name`)
+		JOIN water_body_type wbt ON wbt.id = w.water_body_type_id
+		ORDER BY l.id`)
 	if err != nil {
 		return nil, err
 	}
@@ -39,8 +40,10 @@ func (r *LocationsRepo) Get(ctx context.Context, id int) (*models.Location, erro
 	var l models.Location
 	var wb models.WaterBody
 	err := r.db.QueryRowContext(ctx, `
-		SELECT l.id, l.name, l.region, l.notes, l.waterbody_id, w.name, w.type
-		FROM locations l JOIN water_body w ON w.id = l.waterbody_id
+		SELECT l.id, l.name, l.region, l.notes, l.waterbody_id, w.name, wbt.name
+		FROM locations l
+		JOIN water_body w ON w.id = l.waterbody_id
+		JOIN water_body_type wbt ON wbt.id = w.water_body_type_id
 		WHERE l.id = ?`, id).
 		Scan(&l.ID, &l.Name, &l.Region, &l.Notes, &l.WaterBodyID, &wb.Name, &wb.Type)
 	if err != nil {

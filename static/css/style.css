@@ -1,45 +1,66 @@
-*, *::before, *::after { box-sizing: border-box; }
+html { font-size: 15px; }
 
-body {
-  font-family: system-ui, sans-serif;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1rem;
-  color: #222;
-}
-
-nav {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 0.5rem;
-}
-
-nav a {
-  text-decoration: none;
-  color: #0066cc;
-  font-weight: 500;
-}
-
-nav a:hover { text-decoration: underline; }
-
-h1 { margin-top: 0; }
-
-table {
-  width: 100%;
-  border-collapse: collapse;
+button, [role="button"], [type="submit"], [type="reset"], [type="button"],
+input, select, textarea {
+  --pico-form-element-spacing-vertical: 0.4rem;
+  --pico-form-element-spacing-horizontal: 0.65rem;
   font-size: 0.9rem;
 }
 
-th, td {
-  text-align: left;
-  padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid #eee;
+nav, nav a, nav li { font-size: 0.9rem; }
+
+th, td { padding: 0.4rem 0.6rem; }
+
+/* Page header: h1 + action button in a row */
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: var(--pico-spacing);
+}
+.page-header h1 { margin: 0; }
+
+/* Inline action buttons in table rows */
+.row-actions { display: flex; gap: 0.4rem; }
+.row-actions form { display: contents; }
+
+/* Icon-only buttons */
+.btn-icon { padding: 0.4rem 0.5rem; }
+.btn-sm { font-size: 0.8rem; padding: 0.2rem 0.4rem; }
+.btn-sm.btn-icon { padding: 0.15rem 0.3rem; }
+
+/* Pico adds margin-bottom to all form elements including button */
+.row-actions button,
+.row-actions [role="button"] { margin-bottom: 0; }
+
+/* Danger (delete) button */
+button.danger, [role="button"].danger {
+  --pico-color: #c0392b;
+  --pico-border-color: #c0392b;
+  --pico-background-color: transparent;
+}
+button.danger:hover, [role="button"].danger:hover {
+  --pico-background-color: #fdf0ee;
 }
 
-th { background: #f5f5f5; font-weight: 600; }
+/* Form max-width */
+.form { max-width: 460px; }
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: var(--pico-spacing);
+}
 
-tr:hover td { background: #fafafa; }
+/* Validation error */
+.error {
+  color: #c0392b;
+  background: #fdf0ee;
+  border: 1px solid #f5c0b0;
+  border-radius: var(--pico-border-radius);
+  padding: 0.5rem 0.75rem;
+  margin-bottom: var(--pico-spacing);
+  font-size: 0.9rem;
+}
 
-a { color: #0066cc; }
+/* Nav icon vertical alignment */
+nav .mdi { vertical-align: middle; }

@@ -29,8 +29,12 @@ func main() {
 	locations := sqliterepo.NewLocations(database)
 	lures := sqliterepo.NewLures(database)
 	techniques := sqliterepo.NewTechniques(database)
+	waterBodies := sqliterepo.NewWaterBodies(database)
+	waterBodyTypes := sqliterepo.NewWaterBodyTypes(database)
+	brands := sqliterepo.NewBrands(database)
+	fishSpecies := sqliterepo.NewFishSpecies(database)
 
-	h := handler.New(sessions, catches, locations, lures, techniques)
+	h := handler.New(sessions, catches, locations, lures, techniques, waterBodies, waterBodyTypes, brands, fishSpecies)
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
@@ -46,10 +50,13 @@ func main() {
 	app.Static("/static", "./static")
 
 	app.Get("/", h.Sessions.List)
-	app.Get("/sessions/:id", h.Sessions.Show)
-	app.Get("/catches", h.Catches.List)
-	app.Get("/locations", h.Locations.List)
-	app.Get("/lures", h.Lures.List)
+	h.Sessions.Register(app.Group("/sessions"))
+	h.Catches.Register(app.Group("/catches"))
+	h.Locations.Register(app.Group("/locations"))
+	h.Lures.Register(app.Group("/lures"))
+	h.WaterBodies.Register(app.Group("/water-bodies"))
+	h.Brands.Register(app.Group("/brands"))
+	h.FishSpecies.Register(app.Group("/fish-species"))
 
 	addr := os.Getenv("ADDR")
 	if addr == "" {

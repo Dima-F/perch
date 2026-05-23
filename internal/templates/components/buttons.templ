@@ -1,0 +1,39 @@
+package components
+
+// BtnIconAction — icon-only <button type="button"> з довільними атрибутами (HTMX, onclick тощо)
+templ BtnIconAction(icon, title, class string, attrs templ.Attributes) {
+	<button type="button" class={ "btn-icon " + class } title={ title } { attrs... }>
+		<i class={ "mdi mdi-" + icon }></i>
+	</button>
+}
+
+// BtnIconLink — icon-only <a role="button"> для навігації
+templ BtnIconLink(href, icon, title, class string) {
+	<a href={ templ.SafeURL(href) } role="button" class={ "btn-icon " + class } title={ title }>
+		<i class={ "mdi mdi-" + icon }></i>
+	</a>
+}
+
+// BtnSubmit — кнопка відправки форми з іконкою і текстом
+templ BtnSubmit(icon, label string) {
+	<button type="submit">
+		<i class={ "mdi mdi-" + icon }></i>
+		{ " " + label }
+	</button>
+}
+
+// BtnSecondary — вторинна кнопка-посилання з іконкою і текстом (для навігації)
+templ BtnSecondary(href, icon, label string) {
+	<a href={ templ.SafeURL(href) } role="button" class="secondary outline">
+		<i class={ "mdi mdi-" + icon }></i>
+		{ " " + label }
+	</a>
+}
+
+// BtnAction — <button type="button"> з іконкою і текстом та довільними атрибутами
+templ BtnAction(icon, label, class string, attrs templ.Attributes) {
+	<button type="button" class={ class } { attrs... }>
+		<i class={ "mdi mdi-" + icon }></i>
+		{ " " + label }
+	</button>
+}

@@ -1,0 +1,107 @@
+package pages
+
+import (
+	"fmt"
+	"perch/internal/models"
+	"perch/internal/templates/components"
+	"perch/internal/templates/layouts"
+)
+
+templ BrandsList(brands []models.Brand) {
+	@layouts.Base("Бренди") {
+		<div class="page-header">
+			<h2>Бренди</h2>
+			@components.BtnIconAction("plus", "Додати бренд", "", templ.Attributes{
+				"hx-get":    "/brands/new",
+				"hx-target": "#dialog-content",
+				"hx-swap":   "innerHTML",
+				"onclick":   "document.getElementById('brand-dialog').showModal()",
+			})
+		</div>
+		<table>
+			<thead>
+				<tr>
+					<th>Назва</th>
+					<th>Нотатки</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody id="brands-tbody">
+				for _, b := range brands {
+					@BrandRowPartial(b)
+				}
+			</tbody>
+		</table>
+		<dialog id="brand-dialog">
+			<article>
+				<header>
+					<button type="button" rel="prev" onclick="this.closest('dialog').close()" aria-label="Закрити"></button>
+				</header>
+				<div id="dialog-content"></div>
+			</article>
+		</dialog>
+		<script>
+			document.body.addEventListener('closeDialog', () =>
+				document.getElementById('brand-dialog').close()
+			)
+		</script>
+	}
+}
+
+templ BrandRowPartial(b models.Brand) {
+	<tr id={ fmt.Sprintf("brand-%d", b.ID) }>
+		<td>{ b.Name }</td>
+		<td>
+			if b.Notes != nil {
+				{ *b.Notes }
+			}
+		</td>
+		<td>
+			<div class="row-actions">
+				@components.BtnIconAction("pencil-outline", "Редагувати", "secondary outline btn-sm", templ.Attributes{
+					"hx-get":    fmt.Sprintf("/brands/%d/edit", b.ID),
+					"hx-target": "#dialog-content",
+					"hx-swap":   "innerHTML",
+					"onclick":   "document.getElementById('brand-dialog').showModal()",
+				})
+				@components.BtnIconAction("delete-outline", "Видалити", "outline danger btn-sm", templ.Attributes{
+					"hx-post":    fmt.Sprintf("/brands/%d/delete", b.ID),
+					"hx-confirm": "Видалити бренд?",
+					"hx-target":  "closest tr",
+					"hx-swap":    "delete",
+				})
+			</div>
+		</td>
+	</tr>
+}
+
+templ BrandFormDialog(b models.Brand, errMsg string) {
+	<p><strong>{ brandDialogTitle(b.ID) }</strong></p>
+	if errMsg != "" {
+		<p class="error">{ errMsg }</p>
+	}
+	<form hx-post={ brandDialogAction(b.ID) } hx-target="#dialog-content" hx-swap="innerHTML">
+		@components.InputText("dlg-brand-name", "name", "Назва", b.Name, true)
+		@components.InputTextarea("dlg-brand-notes", "notes", "Нотатки", 3, b.Notes)
+		<div class="form-actions">
+			@components.BtnSubmit("content-save-outline", "Зберегти")
+			@components.BtnAction("close", "Скасувати", "secondary outline", templ.Attributes{
+				"onclick": "this.closest('dialog').close()",
+			})
+		</div>
+	</form>
+}
+
+func brandDialogTitle(id int) string {
+	if id == 0 {
+		return "Новий бренд"
+	}
+	return "Редагувати бренд"
+}
+
+func brandDialogAction(id int) string {
+	if id == 0 {
+		return "/brands"
+	}
+	return fmt.Sprintf("/brands/%d", id)
+}

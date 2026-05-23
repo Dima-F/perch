@@ -1,0 +1,108 @@
+package pages
+
+import (
+	"fmt"
+	"perch/internal/models"
+	"perch/internal/templates/components"
+	"perch/internal/templates/layouts"
+)
+
+templ WaterBodiesList(wbs []models.WaterBody) {
+	@layouts.Base("Водойми") {
+		<div class="page-header">
+			<h2>Водойми</h2>
+			@components.BtnIconAction("plus", "Додати водойму", "", templ.Attributes{
+				"hx-get":    "/water-bodies/new",
+				"hx-target": "#dialog-content",
+				"hx-swap":   "innerHTML",
+				"onclick":   "document.getElementById('wb-dialog').showModal()",
+			})
+		</div>
+		<table>
+			<thead>
+				<tr>
+					<th>Назва</th>
+					<th>Тип</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody id="water-bodies-tbody">
+				for _, wb := range wbs {
+					@WaterBodyRowPartial(wb)
+				}
+			</tbody>
+		</table>
+		<dialog id="wb-dialog">
+			<article>
+				<header>
+					<button type="button" rel="prev" onclick="this.closest('dialog').close()" aria-label="Закрити"></button>
+				</header>
+				<div id="dialog-content"></div>
+			</article>
+		</dialog>
+		<script>
+			document.body.addEventListener('closeDialog', () =>
+				document.getElementById('wb-dialog').close()
+			)
+		</script>
+	}
+}
+
+templ WaterBodyRowPartial(wb models.WaterBody) {
+	<tr id={ fmt.Sprintf("wb-%d", wb.ID) }>
+		<td>{ wb.Name }</td>
+		<td>{ wb.Type }</td>
+		<td>
+			<div class="row-actions">
+				@components.BtnIconAction("pencil-outline", "Редагувати", "secondary outline btn-sm", templ.Attributes{
+					"hx-get":    fmt.Sprintf("/water-bodies/%d/edit", wb.ID),
+					"hx-target": "#dialog-content",
+					"hx-swap":   "innerHTML",
+					"onclick":   "document.getElementById('wb-dialog').showModal()",
+				})
+				@components.BtnIconAction("delete-outline", "Видалити", "outline danger btn-sm", templ.Attributes{
+					"hx-post":    fmt.Sprintf("/water-bodies/%d/delete", wb.ID),
+					"hx-confirm": "Видалити водойму?",
+					"hx-target":  "closest tr",
+					"hx-swap":    "delete",
+				})
+			</div>
+		</td>
+	</tr>
+}
+
+templ WaterBodyFormDialog(wb models.WaterBody, types []models.WaterBodyType, errMsg string) {
+	<p><strong>{ wbDialogTitle(wb.ID) }</strong></p>
+	if errMsg != "" {
+		<p class="error">{ errMsg }</p>
+	}
+	<form hx-post={ wbDialogAction(wb.ID) } hx-target="#dialog-content" hx-swap="innerHTML">
+		@components.InputText("dlg-wb-name", "name", "Назва", wb.Name, true)
+		@components.InputSelect("dlg-wb-type", "water_body_type_id", "Тип", true) {
+			<option value="">— оберіть —</option>
+			for _, t := range types {
+				<option value={ fmt.Sprintf("%d", t.ID) } selected?={ t.ID == wb.WaterBodyTypeID }>{ t.Name }</option>
+			}
+		}
+		<div class="form-actions">
+			@components.BtnSubmit("content-save-outline", "Зберегти")
+			@components.BtnAction("close", "Скасувати", "secondary outline", templ.Attributes{
+				"onclick": "this.closest('dialog').close()",
+			})
+		</div>
+	</form>
+}
+
+func wbDialogTitle(id int) string {
+	if id == 0 {
+		return "Нова водойма"
+	}
+	return "Редагувати водойму"
+}
+
+func wbDialogAction(id int) string {
+	if id == 0 {
+		return "/water-bodies"
+	}
+	return fmt.Sprintf("/water-bodies/%d", id)
+}

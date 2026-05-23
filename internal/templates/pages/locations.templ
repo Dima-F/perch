@@ -1,13 +1,23 @@
 package pages
 
 import (
+	"fmt"
 	"perch/internal/models"
+	"perch/internal/templates/components"
 	"perch/internal/templates/layouts"
 )
 
 templ LocationsList(locations []models.Location) {
 	@layouts.Base("Локації") {
-		<h1>Локації</h1>
+		<div class="page-header">
+			<h2>Локації</h2>
+			@components.BtnIconAction("plus", "Додати локацію", "", templ.Attributes{
+				"hx-get":    "/locations/new",
+				"hx-target": "#dialog-content",
+				"hx-swap":   "innerHTML",
+				"onclick":   "document.getElementById('location-dialog').showModal()",
+			})
+		</div>
 		<table>
 			<thead>
 				<tr>
@@ -16,31 +26,106 @@ templ LocationsList(locations []models.Location) {
 					<th>Водойма</th>
 					<th>Тип</th>
 					<th>Нотатки</th>
+					<th></th>
 				</tr>
 			</thead>
-			<tbody>
+			<tbody id="locations-tbody">
 				for _, l := range locations {
-					<tr>
-						<td>{ l.Name }</td>
-						<td>{ l.Region }</td>
-						<td>
-							if l.WaterBody != nil {
-								{ l.WaterBody.Name }
-							}
-						</td>
-						<td>
-							if l.WaterBody != nil {
-								{ l.WaterBody.Type }
-							}
-						</td>
-						<td>
-							if l.Notes != nil {
-								{ *l.Notes }
-							}
-						</td>
-					</tr>
+					@LocationRowPartial(l)
 				}
 			</tbody>
 		</table>
+		<dialog id="location-dialog">
+			<article>
+				<header>
+					<button type="button" rel="prev" onclick="this.closest('dialog').close()" aria-label="Закрити"></button>
+				</header>
+				<div id="dialog-content"></div>
+			</article>
+		</dialog>
+		<script>
+			document.body.addEventListener('closeDialog', () =>
+				document.getElementById('location-dialog').close()
+			)
+		</script>
 	}
+}
+
+templ LocationRowPartial(loc models.Location) {
+	<tr id={ fmt.Sprintf("loc-%d", loc.ID) }>
+		<td>{ loc.Name }</td>
+		<td>{ loc.Region }</td>
+		<td>
+			if loc.WaterBody != nil {
+				{ loc.WaterBody.Name }
+			}
+		</td>
+		<td>
+			if loc.WaterBody != nil {
+				{ loc.WaterBody.Type }
+			}
+		</td>
+		<td>
+			if loc.Notes != nil {
+				{ *loc.Notes }
+			}
+		</td>
+		<td>
+			<div class="row-actions">
+				@components.BtnIconAction("pencil-outline", "Редагувати", "secondary outline btn-sm", templ.Attributes{
+					"hx-get":    fmt.Sprintf("/locations/%d/edit", loc.ID),
+					"hx-target": "#dialog-content",
+					"hx-swap":   "innerHTML",
+					"onclick":   "document.getElementById('location-dialog').showModal()",
+				})
+				@components.BtnIconAction("delete-outline", "Видалити", "outline danger btn-sm", templ.Attributes{
+					"hx-post":    fmt.Sprintf("/locations/%d/delete", loc.ID),
+					"hx-confirm": "Видалити локацію?",
+					"hx-target":  "closest tr",
+					"hx-swap":    "delete",
+				})
+			</div>
+		</td>
+	</tr>
+}
+
+templ LocationFormDialog(loc models.Location, waterBodies []models.WaterBody, errMsg string) {
+	<p><strong>{ dialogTitle(loc.ID) }</strong></p>
+	if errMsg != "" {
+		<p class="error">{ errMsg }</p>
+	}
+	<form hx-post={ dialogAction(loc.ID) } hx-target="#dialog-content" hx-swap="innerHTML">
+		@components.InputText("dlg-name", "name", "Назва", loc.Name, true)
+		@components.InputText("dlg-region", "region", "Регіон", loc.Region, true)
+		@components.InputSelect("dlg-waterbody", "waterbody_id", "Водойма", true) {
+			<option value="">— оберіть —</option>
+			for _, wb := range waterBodies {
+				<option
+					value={ fmt.Sprintf("%d", wb.ID) }
+					selected?={ wb.ID == loc.WaterBodyID }
+				>{ wb.Name } ({ wb.Type })</option>
+			}
+		}
+		@components.InputTextarea("dlg-notes", "notes", "Нотатки", 3, loc.Notes)
+		<div class="form-actions">
+			@components.BtnSubmit("content-save-outline", "Зберегти")
+			@components.BtnAction("close", "Скасувати", "secondary outline", templ.Attributes{
+				"onclick": "this.closest('dialog').close()",
+			})
+		</div>
+	</form>
+}
+
+func dialogTitle(id int) string {
+	if id == 0 {
+		return "Нова локація"
+	}
+	return "Редагувати локацію"
+}
+
+func dialogAction(id int) string {
+	if id == 0 {
+		return "/locations"
+	}
+	return fmt.Sprintf("/locations/%d", id)
 }

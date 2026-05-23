@@ -4,9 +4,7 @@ import (
 	"perch/internal/repository/sqlite"
 	"perch/internal/templates/pages"
 
-	"github.com/a-h/templ"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/adaptor"
 )
 
 type SessionHandler struct {
@@ -14,9 +12,8 @@ type SessionHandler struct {
 	catches  *sqlite.CatchesRepo
 }
 
-func render(c *fiber.Ctx, component templ.Component) error {
-	c.Set("Content-Type", "text/html")
-	return adaptor.HTTPHandler(templ.Handler(component))(c)
+func (h *SessionHandler) Register(r fiber.Router) {
+	r.Get("/:id", h.Show)
 }
 
 func (h *SessionHandler) List(c *fiber.Ctx) error {

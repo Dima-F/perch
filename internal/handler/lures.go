@@ -11,6 +11,10 @@ type LureHandler struct {
 	lures *sqlite.LuresRepo
 }
 
+func (h *LureHandler) Register(r fiber.Router) {
+	r.Get("/", h.List)
+}
+
 func (h *LureHandler) List(c *fiber.Ctx) error {
 	lures, err := h.lures.List(c.Context())
 	if err != nil {

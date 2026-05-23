@@ -1,0 +1,100 @@
+package pages
+
+import (
+	"fmt"
+	"perch/internal/models"
+	"perch/internal/templates/components"
+	"perch/internal/templates/layouts"
+)
+
+templ FishSpeciesList(species []models.FishSpecies) {
+	@layouts.Base("Види риб") {
+		<div class="page-header">
+			<h2>Види риб</h2>
+			@components.BtnIconAction("plus", "Додати вид", "", templ.Attributes{
+				"hx-get":    "/fish-species/new",
+				"hx-target": "#dialog-content",
+				"hx-swap":   "innerHTML",
+				"onclick":   "document.getElementById('fish-dialog').showModal()",
+			})
+		</div>
+		<table>
+			<thead>
+				<tr>
+					<th>Назва</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody id="fish-species-tbody">
+				for _, f := range species {
+					@FishSpeciesRowPartial(f)
+				}
+			</tbody>
+		</table>
+		<dialog id="fish-dialog">
+			<article>
+				<header>
+					<button type="button" rel="prev" onclick="this.closest('dialog').close()" aria-label="Закрити"></button>
+				</header>
+				<div id="dialog-content"></div>
+			</article>
+		</dialog>
+		<script>
+			document.body.addEventListener('closeDialog', () =>
+				document.getElementById('fish-dialog').close()
+			)
+		</script>
+	}
+}
+
+templ FishSpeciesRowPartial(f models.FishSpecies) {
+	<tr id={ fmt.Sprintf("fish-%d", f.ID) }>
+		<td>{ f.Name }</td>
+		<td>
+			<div class="row-actions">
+				@components.BtnIconAction("pencil-outline", "Редагувати", "secondary outline btn-sm", templ.Attributes{
+					"hx-get":    fmt.Sprintf("/fish-species/%d/edit", f.ID),
+					"hx-target": "#dialog-content",
+					"hx-swap":   "innerHTML",
+					"onclick":   "document.getElementById('fish-dialog').showModal()",
+				})
+				@components.BtnIconAction("delete-outline", "Видалити", "outline danger btn-sm", templ.Attributes{
+					"hx-post":    fmt.Sprintf("/fish-species/%d/delete", f.ID),
+					"hx-confirm": "Видалити вид риби?",
+					"hx-target":  "closest tr",
+					"hx-swap":    "delete",
+				})
+			</div>
+		</td>
+	</tr>
+}
+
+templ FishSpeciesFormDialog(f models.FishSpecies, errMsg string) {
+	<p><strong>{ fishDialogTitle(f.ID) }</strong></p>
+	if errMsg != "" {
+		<p class="error">{ errMsg }</p>
+	}
+	<form hx-post={ fishDialogAction(f.ID) } hx-target="#dialog-content" hx-swap="innerHTML">
+		@components.InputText("dlg-fish-name", "name", "Назва", f.Name, true)
+		<div class="form-actions">
+			@components.BtnSubmit("content-save-outline", "Зберегти")
+			@components.BtnAction("close", "Скасувати", "secondary outline", templ.Attributes{
+				"onclick": "this.closest('dialog').close()",
+			})
+		</div>
+	</form>
+}
+
+func fishDialogTitle(id int) string {
+	if id == 0 {
+		return "Новий вид риби"
+	}
+	return "Редагувати вид риби"
+}
+
+func fishDialogAction(id int) string {
+	if id == 0 {
+		return "/fish-species"
+	}
+	return fmt.Sprintf("/fish-species/%d", id)
+}

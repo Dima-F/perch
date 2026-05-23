@@ -14,6 +14,10 @@ type CatchHandler struct {
 	lures     *sqlite.LuresRepo
 }
 
+func (h *CatchHandler) Register(r fiber.Router) {
+	r.Get("/", h.List)
+}
+
 func (h *CatchHandler) List(c *fiber.Ctx) error {
 	catches, err := h.catches.List(c.Context())
 	if err != nil {

@@ -1,0 +1,33 @@
+package components
+
+import "fmt"
+
+// InputText — текстове поле з label
+templ InputText(id, name, label, value string, required bool) {
+	<label for={ id }>
+		{ label }
+		<input id={ id } name={ name } type="text" value={ value } required?={ required }/>
+	</label>
+}
+
+// InputTextarea — textarea з label
+templ InputTextarea(id, name, label string, rows int, value *string) {
+	<label for={ id }>
+		{ label }
+		<textarea id={ id } name={ name } rows={ fmt.Sprintf("%d", rows) }>
+			if value != nil {
+				{ *value }
+			}
+		</textarea>
+	</label>
+}
+
+// InputSelect — select з label; options передаються як children
+templ InputSelect(id, name, label string, required bool) {
+	<label for={ id }>
+		{ label }
+		<select id={ id } name={ name } required?={ required }>
+			{ children... }
+		</select>
+	</label>
+}

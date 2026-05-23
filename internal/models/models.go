@@ -12,10 +12,16 @@ type FishSpecies struct {
 	Name string `db:"name"`
 }
 
-type WaterBody struct {
+type WaterBodyType struct {
 	ID   int    `db:"id"`
 	Name string `db:"name"`
-	Type string `db:"type"`
+}
+
+type WaterBody struct {
+	ID              int    `db:"id"`
+	Name            string `db:"name"`
+	WaterBodyTypeID int    `db:"water_body_type_id"`
+	Type            string // populated from JOIN with water_body_type
 }
 
 type Location struct {

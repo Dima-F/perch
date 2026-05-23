@@ -7,17 +7,29 @@ templ Base(title string) {
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>{ title } — Perch</title>
-			<script src="https://unpkg.com/htmx.org@2.0.3"></script>
+			<script src="/static/vendor/htmx.min.js"></script>
+			<link rel="stylesheet" href="/static/vendor/pico.min.css"/>
+			<link rel="stylesheet" href="/static/vendor/mdi/css/materialdesignicons.min.css"/>
 			<link rel="stylesheet" href="/static/css/style.css"/>
 		</head>
 		<body>
-			<nav>
-				<a href="/">Сесії</a>
-				<a href="/catches">Улови</a>
-				<a href="/locations">Локації</a>
-				<a href="/lures">Приманки</a>
-			</nav>
-			<main>
+			<header class="container-fluid">
+				<nav>
+					<ul>
+						<li><strong>Perch</strong></li>
+					</ul>
+					<ul>
+						<li><a href="/"><i class="mdi mdi-calendar-text-outline"></i> Сесії</a></li>
+						<li><a href="/catches"><i class="mdi mdi-fish"></i> Улови</a></li>
+						<li><a href="/locations"><i class="mdi mdi-map-marker-outline"></i> Локації</a></li>
+						<li><a href="/lures"><i class="mdi mdi-hook"></i> Приманки</a></li>
+							<li><a href="/water-bodies"><i class="mdi mdi-waves"></i> Водойми</a></li>
+							<li><a href="/brands"><i class="mdi mdi-tag-outline"></i> Бренди</a></li>
+							<li><a href="/fish-species"><i class="mdi mdi-fish"></i> Види риб</a></li>
+					</ul>
+				</nav>
+			</header>
+			<main class="container">
 				{ children... }
 			</main>
 		</body>
