@@ -28,13 +28,15 @@ func main() {
 	catches := sqliterepo.NewCatches(database)
 	locations := sqliterepo.NewLocations(database)
 	lures := sqliterepo.NewLures(database)
+	lureModels := sqliterepo.NewLureModels(database)
+	lureTypes := sqliterepo.NewLureTypes(database)
 	techniques := sqliterepo.NewTechniques(database)
 	waterBodies := sqliterepo.NewWaterBodies(database)
 	waterBodyTypes := sqliterepo.NewWaterBodyTypes(database)
 	brands := sqliterepo.NewBrands(database)
 	fishSpecies := sqliterepo.NewFishSpecies(database)
 
-	h := handler.New(sessions, catches, locations, lures, techniques, waterBodies, waterBodyTypes, brands, fishSpecies)
+	h := handler.New(sessions, catches, locations, lures, lureModels, lureTypes, techniques, waterBodies, waterBodyTypes, brands, fishSpecies)
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
@@ -54,6 +56,7 @@ func main() {
 	h.Catches.Register(app.Group("/catches"))
 	h.Locations.Register(app.Group("/locations"))
 	h.Lures.Register(app.Group("/lures"))
+	h.LureModels.Register(app.Group("/lure-models"))
 	h.WaterBodies.Register(app.Group("/water-bodies"))
 	h.Brands.Register(app.Group("/brands"))
 	h.FishSpecies.Register(app.Group("/fish-species"))

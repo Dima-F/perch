@@ -1,0 +1,131 @@
+package pages
+
+import (
+	"fmt"
+	"perch/internal/models"
+	"perch/internal/templates/components"
+	"perch/internal/templates/layouts"
+)
+
+templ LureModelsList(lms []models.LureModel) {
+	@layouts.Base("Моделі приманок") {
+		<div class="page-header">
+			<h2>Моделі приманок</h2>
+			@components.BtnIconAction("plus", "Додати модель", "", templ.Attributes{
+				"hx-get":    "/lure-models/new",
+				"hx-target": "#dialog-content",
+				"hx-swap":   "innerHTML",
+				"onclick":   "document.getElementById('lm-dialog').showModal()",
+			})
+		</div>
+		<table>
+			<thead>
+				<tr>
+					<th>Назва</th>
+					<th>Бренд</th>
+					<th>Тип</th>
+					<th>Нотатки</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody id="lure-models-tbody">
+				for _, m := range lms {
+					@LureModelRowPartial(m)
+				}
+			</tbody>
+		</table>
+		<dialog id="lm-dialog">
+			<article>
+				<header>
+					<button type="button" rel="prev" onclick="this.closest('dialog').close()" aria-label="Закрити"></button>
+				</header>
+				<div id="dialog-content"></div>
+			</article>
+		</dialog>
+		<script>
+			document.body.addEventListener('closeDialog', () =>
+				document.getElementById('lm-dialog').close()
+			)
+		</script>
+	}
+}
+
+templ LureModelRowPartial(m models.LureModel) {
+	<tr id={ fmt.Sprintf("lure-model-%d", m.ID) }>
+		<td>{ m.Name }</td>
+		<td>
+			if m.Brand != nil {
+				{ m.Brand.Name }
+			}
+		</td>
+		<td>
+			if m.LureType != nil {
+				{ m.LureType.Name }
+			}
+		</td>
+		<td>
+			if m.Notes != nil {
+				{ *m.Notes }
+			}
+		</td>
+		<td>
+			<div class="row-actions">
+				@components.BtnIconAction("pencil-outline", "Редагувати", "secondary outline btn-sm", templ.Attributes{
+					"hx-get":    fmt.Sprintf("/lure-models/%d/edit", m.ID),
+					"hx-target": "#dialog-content",
+					"hx-swap":   "innerHTML",
+					"onclick":   "document.getElementById('lm-dialog').showModal()",
+				})
+				@components.BtnIconAction("delete-outline", "Видалити", "outline danger btn-sm", templ.Attributes{
+					"hx-post":    fmt.Sprintf("/lure-models/%d/delete", m.ID),
+					"hx-confirm": "Видалити модель приманки?",
+					"hx-target":  "closest tr",
+					"hx-swap":    "delete",
+				})
+			</div>
+		</td>
+	</tr>
+}
+
+templ LureModelFormDialog(m models.LureModel, lureTypes []models.LureType, brands []models.Brand, errMsg string) {
+	<p><strong>{ lmDialogTitle(m.ID) }</strong></p>
+	if errMsg != "" {
+		<p class="error">{ errMsg }</p>
+	}
+	<form hx-post={ lmDialogAction(m.ID) } hx-target="#dialog-content" hx-swap="innerHTML">
+		@components.InputText("dlg-lm-name", "name", "Назва", m.Name, true)
+		@components.InputSelect("dlg-lm-type", "luretype_id", "Тип", true) {
+			<option value="">— оберіть —</option>
+			for _, lt := range lureTypes {
+				<option value={ fmt.Sprintf("%d", lt.ID) } selected?={ lt.ID == m.LureTypeID }>{ lt.Name }</option>
+			}
+		}
+		@components.InputSelect("dlg-lm-brand", "brand_id", "Бренд", false) {
+			<option value="">— без бренду —</option>
+			for _, b := range brands {
+				<option value={ fmt.Sprintf("%d", b.ID) } selected?={ m.BrandID != nil && b.ID == *m.BrandID }>{ b.Name }</option>
+			}
+		}
+		@components.InputTextarea("dlg-lm-notes", "notes", "Нотатки", 3, m.Notes)
+		<div class="form-actions">
+			@components.BtnSubmit("content-save-outline", "Зберегти")
+			@components.BtnAction("close", "Скасувати", "secondary outline", templ.Attributes{
+				"onclick": "this.closest('dialog').close()",
+			})
+		</div>
+	</form>
+}
+
+func lmDialogTitle(id int) string {
+	if id == 0 {
+		return "Нова модель приманки"
+	}
+	return "Редагувати модель приманки"
+}
+
+func lmDialogAction(id int) string {
+	if id == 0 {
+		return "/lure-models"
+	}
+	return fmt.Sprintf("/lure-models/%d", id)
+}

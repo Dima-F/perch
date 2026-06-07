@@ -3,12 +3,21 @@ package pages
 import (
 	"fmt"
 	"perch/internal/models"
+	"perch/internal/templates/components"
 	"perch/internal/templates/layouts"
 )
 
 templ LuresList(lures []models.Lure) {
 	@layouts.Base("Приманки") {
-		<h1>Приманки</h1>
+		<div class="page-header">
+			<h2>Приманки</h2>
+			@components.BtnIconAction("plus", "Додати приманку", "", templ.Attributes{
+				"hx-get":    "/lures/new",
+				"hx-target": "#dialog-content",
+				"hx-swap":   "innerHTML",
+				"onclick":   "document.getElementById('lure-dialog').showModal()",
+			})
+		</div>
 		<table>
 			<thead>
 				<tr>
@@ -18,44 +27,142 @@ templ LuresList(lures []models.Lure) {
 					<th>Колір</th>
 					<th>Розмір</th>
 					<th>Вага (г)</th>
+					<th></th>
 				</tr>
 			</thead>
-			<tbody>
+			<tbody id="lures-tbody">
 				for _, l := range lures {
-					<tr>
-						<td>
-							if l.LureModel != nil {
-								{ l.LureModel.Name }
-							}
-						</td>
-						<td>
-							if l.LureModel != nil && l.LureModel.Brand != nil {
-								{ l.LureModel.Brand.Name }
-							}
-						</td>
-						<td>
-							if l.LureModel != nil && l.LureModel.LureType != nil {
-								{ l.LureModel.LureType.Name }
-							}
-						</td>
-						<td>
-							if l.Color != nil {
-								{ *l.Color }
-							}
-						</td>
-						<td>
-							if l.Size != nil {
-								{ *l.Size }
-							}
-						</td>
-						<td>
-							if l.WeightG != nil {
-								{ fmt.Sprintf("%.1f", *l.WeightG) }
-							}
-						</td>
-					</tr>
+					@LureRowPartial(l)
 				}
 			</tbody>
 		</table>
+		<dialog id="lure-dialog">
+			<article>
+				<header>
+					<button type="button" rel="prev" onclick="this.closest('dialog').close()" aria-label="Закрити"></button>
+				</header>
+				<div id="dialog-content"></div>
+			</article>
+		</dialog>
+		<script>
+			document.body.addEventListener('closeDialog', () =>
+				document.getElementById('lure-dialog').close()
+			)
+		</script>
 	}
+}
+
+templ LureRowPartial(l models.Lure) {
+	<tr id={ fmt.Sprintf("lure-%d", l.ID) }>
+		<td>
+			if l.LureModel != nil {
+				{ l.LureModel.Name }
+			}
+		</td>
+		<td>
+			if l.LureModel != nil && l.LureModel.Brand != nil {
+				{ l.LureModel.Brand.Name }
+			}
+		</td>
+		<td>
+			if l.LureModel != nil && l.LureModel.LureType != nil {
+				{ l.LureModel.LureType.Name }
+			}
+		</td>
+		<td>
+			if l.Color != nil {
+				{ *l.Color }
+			}
+		</td>
+		<td>
+			if l.Size != nil {
+				{ *l.Size }
+			}
+		</td>
+		<td>
+			if l.WeightG != nil {
+				{ fmt.Sprintf("%.1f", *l.WeightG) }
+			}
+		</td>
+		<td>
+			<div class="row-actions">
+				@components.BtnIconAction("pencil-outline", "Редагувати", "secondary outline btn-sm", templ.Attributes{
+					"hx-get":    fmt.Sprintf("/lures/%d/edit", l.ID),
+					"hx-target": "#dialog-content",
+					"hx-swap":   "innerHTML",
+					"onclick":   "document.getElementById('lure-dialog').showModal()",
+				})
+				@components.BtnIconAction("delete-outline", "Видалити", "outline danger btn-sm", templ.Attributes{
+					"hx-post":    fmt.Sprintf("/lures/%d/delete", l.ID),
+					"hx-confirm": "Видалити приманку?",
+					"hx-target":  "closest tr",
+					"hx-swap":    "delete",
+				})
+			</div>
+		</td>
+	</tr>
+}
+
+templ LureFormDialog(l models.Lure, lureModels []models.LureModel, errMsg string) {
+	<p><strong>{ lureDialogTitle(l.ID) }</strong></p>
+	if errMsg != "" {
+		<p class="error">{ errMsg }</p>
+	}
+	<form hx-post={ lureDialogAction(l.ID) } hx-target="#dialog-content" hx-swap="innerHTML">
+		@components.InputSelect("dlg-lure-model", "model_id", "Модель", true) {
+			<option value="">— оберіть —</option>
+			for _, m := range lureModels {
+				<option value={ fmt.Sprintf("%d", m.ID) } selected?={ m.ID == l.ModelID }>
+					if m.Brand != nil {
+						{ m.Brand.Name + " " }
+					}
+					{ m.Name }
+					if m.LureType != nil {
+						{ " (" + m.LureType.Name + ")" }
+					}
+				</option>
+			}
+		}
+		@components.InputText("dlg-lure-color", "color", "Колір", lureStrVal(l.Color), false)
+		@components.InputText("dlg-lure-size", "size", "Розмір", lureStrVal(l.Size), false)
+		<label for="dlg-lure-weight">
+			Вага (г)
+			<input id="dlg-lure-weight" name="weight_g" type="number" step="0.1" min="0" value={ lureWeightStr(l.WeightG) }/>
+		</label>
+		@components.InputTextarea("dlg-lure-notes", "notes", "Нотатки", 3, l.Notes)
+		<div class="form-actions">
+			@components.BtnSubmit("content-save-outline", "Зберегти")
+			@components.BtnAction("close", "Скасувати", "secondary outline", templ.Attributes{
+				"onclick": "this.closest('dialog').close()",
+			})
+		</div>
+	</form>
+}
+
+func lureDialogTitle(id int) string {
+	if id == 0 {
+		return "Нова приманка"
+	}
+	return "Редагувати приманку"
+}
+
+func lureDialogAction(id int) string {
+	if id == 0 {
+		return "/lures"
+	}
+	return fmt.Sprintf("/lures/%d", id)
+}
+
+func lureStrVal(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+func lureWeightStr(w *float64) string {
+	if w == nil {
+		return ""
+	}
+	return fmt.Sprintf("%.1f", *w)
 }
