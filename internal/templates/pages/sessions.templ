@@ -28,6 +28,7 @@ templ SessionsList(sessions []struct {
 					<th>Дата</th>
 					<th>Початок</th>
 					<th>Кінець</th>
+					<th>Тип</th>
 					<th>Улови</th>
 					<th>Нотатки</th>
 					<th></th>
@@ -67,6 +68,11 @@ templ SessionRowPartial(s struct {
 		</td>
 		<td>{ s.StartTime.Format("15:04") }</td>
 		<td>{ s.EndTime.Format("15:04") }</td>
+		<td>
+			for _, ft := range s.FishingTypes {
+				<mark class="ft-tag">{ ft.Name }</mark>
+			}
+		</td>
 		<td>{ fmt.Sprintf("%d", s.CatchCount) }</td>
 		<td>
 			if s.Notes != nil {
@@ -92,7 +98,7 @@ templ SessionRowPartial(s struct {
 	</tr>
 }
 
-templ SessionFormDialog(s models.FishingSession, errMsg string) {
+templ SessionFormDialog(s models.FishingSession, allTypes []models.FishingType, errMsg string) {
 	<p><strong>{ sessionDialogTitle(s.ID) }</strong></p>
 	if errMsg != "" {
 		<p class="error">{ errMsg }</p>
@@ -115,9 +121,27 @@ templ SessionFormDialog(s models.FishingSession, errMsg string) {
 				name="end_time"
 				type="datetime-local"
 				value={ sessionTimeValue(s.EndTime) }
-			required
+				required
 			/>
 		</label>
+		if len(allTypes) > 0 {
+			<fieldset>
+				<legend>Тип риболовлі</legend>
+				for _, t := range allTypes {
+					<label>
+						<input
+							type="checkbox"
+							name="fishing_type_id"
+							value={ fmt.Sprintf("%d", t.ID) }
+							if isFishingTypeSelected(s, t.ID) {
+								checked
+							}
+						/>
+						{ t.Name }
+					</label>
+				}
+			</fieldset>
+		}
 		@components.InputTextarea("dlg-session-notes", "notes", "Нотатки", 3, s.Notes)
 		<div class="form-actions">
 			@components.BtnSubmit("content-save-outline", "Зберегти")
@@ -149,6 +173,14 @@ func sessionTimeValue(t time.Time) string {
 	return t.Format("2006-01-02T15:04")
 }
 
+func isFishingTypeSelected(s models.FishingSession, id int) bool {
+	for _, t := range s.FishingTypes {
+		if t.ID == id {
+			return true
+		}
+	}
+	return false
+}
 
 templ SessionDetail(session *models.FishingSession, catches []models.Catch, locations []models.Location) {
 	@layouts.Base("Сесія") {
@@ -157,79 +189,141 @@ templ SessionDetail(session *models.FishingSession, catches []models.Catch, loca
 			<strong>Початок:</strong> { session.StartTime.Format("15:04") }
 			— <strong>Кінець:</strong> { session.EndTime.Format("15:04") }
 		</p>
+		if len(session.FishingTypes) > 0 {
+			<p>
+				<strong>Тип риболовлі:</strong>
+				for _, ft := range session.FishingTypes {
+					<mark class="ft-tag">{ ft.Name }</mark>
+				}
+			</p>
+		}
 		if session.Notes != nil {
 			<p>{ *session.Notes }</p>
 		}
-		<h2>Локації</h2>
-		if len(locations) == 0 {
-			<p>Немає локацій</p>
-		} else {
-			<ul>
+		<div class="page-header">
+			<h2>Локації</h2>
+			@components.BtnIconAction("plus", "Додати локацію", "", templ.Attributes{
+				"hx-get":    fmt.Sprintf("/sessions/%d/locations/picker", session.ID),
+				"hx-target": "#location-dialog-content",
+				"hx-swap":   "innerHTML",
+				"onclick":   "document.getElementById('location-dialog').showModal()",
+			})
+		</div>
+		<table>
+			<thead>
+				<tr>
+					<th>Назва</th>
+					<th>Регіон</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody id="locations-tbody">
 				for _, l := range locations {
-					<li>{ l.Name } ({ l.Region })</li>
+					@SessionLocationRowPartial(session.ID, l)
 				}
-			</ul>
-		}
-		<h2>Улови</h2>
-		if len(catches) == 0 {
-			<p>Немає уловів</p>
-		} else {
-			<table>
-				<thead>
-					<tr>
-						<th>Риба</th>
-						<th>К-сть</th>
-						<th>Ср. довжина</th>
-						<th>Макс. довжина</th>
-						<th>Вага (г)</th>
-						<th>Приманка</th>
-						<th>Оснастка</th>
-					</tr>
-				</thead>
-				<tbody>
-					for _, c := range catches {
-						<tr>
-							<td>
-								if c.Fish != nil {
-									{ c.Fish.Name }
-								}
-							</td>
-							<td>{ fmt.Sprintf("%d", c.Count) }</td>
-							<td>
-								if c.AvgLengthCm != nil {
-									{ fmt.Sprintf("%.1f см", *c.AvgLengthCm) }
-								}
-							</td>
-							<td>
-								if c.MaxLengthCm != nil {
-									{ fmt.Sprintf("%.1f см", *c.MaxLengthCm) }
-								}
-							</td>
-							<td>
-								if c.WeightG != nil {
-									{ fmt.Sprintf("%d", *c.WeightG) }
-								}
-							</td>
-							<td>
-								if c.Lure != nil && c.Lure.LureModel != nil {
-									{ c.Lure.LureModel.Name }
-									if c.Lure.Color != nil {
-										({ *c.Lure.Color })
-									}
-								}
-							</td>
-							<td>
-								if c.JigSetup != nil {
-									{ *c.JigSetup }
-									if c.JigWeightG != nil {
-										{ fmt.Sprintf(" %.1fг", *c.JigWeightG) }
-									}
-								}
-							</td>
-						</tr>
-					}
-				</tbody>
-			</table>
-		}
+			</tbody>
+		</table>
+		<dialog id="location-dialog">
+			<article>
+				<header>
+					<button type="button" rel="prev" onclick="this.closest('dialog').close()" aria-label="Закрити"></button>
+				</header>
+				<div id="location-dialog-content"></div>
+			</article>
+		</dialog>
+		<script>
+			document.body.addEventListener('closeLocationDialog', () =>
+				document.getElementById('location-dialog').close()
+			)
+		</script>
+		<div class="page-header">
+			<h2>Улови</h2>
+			@components.BtnIconAction("plus", "Додати улов", "", templ.Attributes{
+				"hx-get":    fmt.Sprintf("/catches/new?session_id=%d", session.ID),
+				"hx-target": "#catch-dialog-content",
+				"hx-swap":   "innerHTML",
+				"onclick":   "document.getElementById('catch-dialog').showModal()",
+			})
+		</div>
+		<table>
+			<thead>
+				<tr>
+					<th>Риба</th>
+					<th>К-сть</th>
+					<th>Ср. довж. (см)</th>
+					<th>Макс. довж. (см)</th>
+					<th>Вага (г)</th>
+					<th>Приманка</th>
+					<th>Оснастка</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody id="catches-tbody">
+				for _, c := range catches {
+					@CatchRowPartial(c)
+				}
+			</tbody>
+		</table>
+		<dialog id="catch-dialog">
+			<article>
+				<header>
+					<button type="button" rel="prev" onclick="this.closest('dialog').close()" aria-label="Закрити"></button>
+				</header>
+				<div id="catch-dialog-content"></div>
+			</article>
+		</dialog>
+		<script>
+			document.body.addEventListener('closeCatchDialog', () =>
+				document.getElementById('catch-dialog').close()
+			)
+		</script>
+	}
+}
+
+templ SessionLocationRowPartial(sessionID int, l models.Location) {
+	<tr id={ fmt.Sprintf("loc-%d", l.ID) }>
+		<td>{ l.Name }</td>
+		<td>{ l.Region }</td>
+		<td>
+			<div class="row-actions">
+				@components.BtnIconAction("close", "Видалити", "outline danger btn-sm", templ.Attributes{
+					"hx-post":    fmt.Sprintf("/sessions/%d/locations/%d/remove", sessionID, l.ID),
+					"hx-confirm": "Видалити локацію із сесії?",
+					"hx-target":  "closest tr",
+					"hx-swap":    "delete",
+				})
+			</div>
+		</td>
+	</tr>
+}
+
+templ LocationPickerDialog(sessionID int, available []models.Location) {
+	<p><strong>Додати локацію</strong></p>
+	if len(available) == 0 {
+		<p>Всі локації вже додані або список порожній.</p>
+		<div class="form-actions">
+			@components.BtnAction("close", "Закрити", "secondary outline", templ.Attributes{
+				"onclick": "this.closest('dialog').close()",
+			})
+		</div>
+	} else {
+		<form
+			hx-post={ fmt.Sprintf("/sessions/%d/locations", sessionID) }
+			hx-target="#location-dialog-content"
+			hx-swap="innerHTML"
+		>
+			@components.InputSelect("dlg-loc-pick", "location_id", "Локація", true) {
+				<option value="">— оберіть —</option>
+				for _, l := range available {
+					<option value={ fmt.Sprintf("%d", l.ID) }>{ l.Name } ({ l.Region })</option>
+				}
+			}
+			<div class="form-actions">
+				@components.BtnSubmit("plus", "Додати")
+				@components.BtnAction("close", "Скасувати", "secondary outline", templ.Attributes{
+					"onclick": "this.closest('dialog').close()",
+				})
+			</div>
+		</form>
 	}
 }

@@ -138,5 +138,66 @@ func (r *SessionsRepo) GetCatchCount(ctx context.Context, sessionID int) (int, e
 	return count, err
 }
 
+func (r *SessionsRepo) ListSessionFishingTypes(ctx context.Context, sessionID int) ([]models.FishingType, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT ft.id, ft.name
+		FROM session_fishing_types sft
+		JOIN fishing_types ft ON ft.id = sft.fishing_type_id
+		WHERE sft.session_id = ?
+		ORDER BY ft.name`, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []models.FishingType
+	for rows.Next() {
+		var t models.FishingType
+		if err := rows.Scan(&t.ID, &t.Name); err != nil {
+			return nil, err
+		}
+		out = append(out, t)
+	}
+	return out, rows.Err()
+}
+
+func (r *SessionsRepo) ListAllSessionFishingTypes(ctx context.Context) (map[int][]models.FishingType, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT sft.session_id, ft.id, ft.name
+		FROM session_fishing_types sft
+		JOIN fishing_types ft ON ft.id = sft.fishing_type_id
+		ORDER BY ft.name`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make(map[int][]models.FishingType)
+	for rows.Next() {
+		var sessionID int
+		var t models.FishingType
+		if err := rows.Scan(&sessionID, &t.ID, &t.Name); err != nil {
+			return nil, err
+		}
+		out[sessionID] = append(out[sessionID], t)
+	}
+	return out, rows.Err()
+}
+
+func (r *SessionsRepo) SetSessionFishingTypes(ctx context.Context, sessionID int, typeIDs []int) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx, `DELETE FROM session_fishing_types WHERE session_id = ?`, sessionID); err != nil {
+		return err
+	}
+	for _, id := range typeIDs {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO session_fishing_types (session_id, fishing_type_id) VALUES (?, ?)`, sessionID, id); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
 // DB повертає sql.DB для зовнішнього використання
 func (r *SessionsRepo) DB() *sql.DB { return r.db }

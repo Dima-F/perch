@@ -119,10 +119,11 @@ type Spool struct {
 }
 
 type FishingSession struct {
-	ID        int        `db:"id"`
-	StartTime time.Time  `db:"start_time"`
-	EndTime   time.Time  `db:"end_time"`
-	Notes     *string    `db:"notes"`
+	ID           int           `db:"id"`
+	StartTime    time.Time     `db:"start_time"`
+	EndTime      time.Time     `db:"end_time"`
+	Notes        *string       `db:"notes"`
+	FishingTypes []FishingType `db:"-"`
 }
 
 var JigSetups = []string{

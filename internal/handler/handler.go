@@ -29,8 +29,8 @@ func New(
 	fishSpecies *sqlite.FishSpeciesRepo,
 ) *Handlers {
 	return &Handlers{
-		Sessions:    &SessionHandler{sessions: sessions, catches: catches},
-		Catches:     &CatchHandler{catches: catches, sessions: sessions, locations: locations, lures: lures},
+		Sessions:    &SessionHandler{sessions: sessions, catches: catches, fishingTypes: fishingTypes, locations: locations},
+		Catches:     &CatchHandler{catches: catches, sessions: sessions, locations: locations, lures: lures, fishSpecies: fishSpecies},
 		Locations:   &LocationHandler{locations: locations, waterBodies: waterBodies},
 		Lures:       &LureHandler{lures: lures, lureModels: lureModels},
 		LureModels:  &LureModelHandler{lureModels: lureModels, lureTypes: lureTypes, brands: brands},

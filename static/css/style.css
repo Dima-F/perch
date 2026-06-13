@@ -18,7 +18,8 @@ th, td { padding: 0.4rem 0.6rem; }
   gap: 1rem;
   margin-bottom: var(--pico-spacing);
 }
-.page-header h1 { margin: 0; }
+.page-header h1,
+.page-header h2 { margin: 0; }
 
 /* Inline action buttons in table rows */
 .row-actions { display: flex; gap: 0.4rem; }
@@ -64,3 +65,11 @@ button.danger:hover, [role="button"].danger:hover {
 
 /* Nav icon vertical alignment */
 nav .mdi { vertical-align: middle; }
+
+/* Fishing type tags */
+.ft-tag {
+  font-size: 0.75rem;
+  padding: 0.1rem 0.4rem;
+  margin-right: 0.25rem;
+  border-radius: var(--pico-border-radius);
+}

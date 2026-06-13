@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"perch/internal/models"
@@ -12,13 +13,18 @@ import (
 )
 
 type SessionHandler struct {
-	sessions *sqlite.SessionsRepo
-	catches  *sqlite.CatchesRepo
+	sessions     *sqlite.SessionsRepo
+	catches      *sqlite.CatchesRepo
+	fishingTypes *sqlite.FishingTypesRepo
+	locations    *sqlite.LocationsRepo
 }
 
 func (h *SessionHandler) Register(r fiber.Router) {
 	r.Get("/new", h.New)
 	r.Post("/", h.Create)
+	r.Get("/:id/locations/picker", h.LocationPicker)
+	r.Post("/:id/locations/:loc_id/remove", h.RemoveLocation)
+	r.Post("/:id/locations", h.AddLocation)
 	r.Get("/:id/edit", h.Edit)
 	r.Post("/:id/delete", h.Delete)
 	r.Post("/:id", h.Update)
@@ -29,6 +35,13 @@ func (h *SessionHandler) List(c *fiber.Ctx) error {
 	sessions, err := h.sessions.ListWithCatchCount(c.Context())
 	if err != nil {
 		return err
+	}
+	ftMap, err := h.sessions.ListAllSessionFishingTypes(c.Context())
+	if err != nil {
+		return err
+	}
+	for i := range sessions {
+		sessions[i].FishingTypes = ftMap[sessions[i].ID]
 	}
 	return render(c, pages.SessionsList(sessions))
 }
@@ -50,6 +63,7 @@ func (h *SessionHandler) Show(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
+	session.FishingTypes, _ = h.sessions.ListSessionFishingTypes(c.Context(), id)
 	return render(c, pages.SessionDetail(session, catches, locations))
 }
 
@@ -57,18 +71,28 @@ func (h *SessionHandler) New(c *fiber.Ctx) error {
 	if c.Get("HX-Request") == "" {
 		return c.Redirect("/")
 	}
-	return render(c, pages.SessionFormDialog(models.FishingSession{}, ""))
+	allTypes, err := h.fishingTypes.List(c.Context())
+	if err != nil {
+		return err
+	}
+	return render(c, pages.SessionFormDialog(models.FishingSession{}, allTypes, ""))
 }
 
 func (h *SessionHandler) Create(c *fiber.Ctx) error {
 	s, errMsg := sessionFromForm(c)
+	allTypes, _ := h.fishingTypes.List(c.Context())
 	if errMsg != "" {
-		return render(c, pages.SessionFormDialog(s, errMsg))
+		return render(c, pages.SessionFormDialog(s, allTypes, errMsg))
 	}
 	created, err := h.sessions.Create(c.Context(), s)
 	if err != nil {
-		return render(c, pages.SessionFormDialog(s, err.Error()))
+		return render(c, pages.SessionFormDialog(s, allTypes, err.Error()))
 	}
+	typeIDs := fishingTypeIDsFromForm(c)
+	if err := h.sessions.SetSessionFishingTypes(c.Context(), created.ID, typeIDs); err != nil {
+		return err
+	}
+	created.FishingTypes, _ = h.sessions.ListSessionFishingTypes(c.Context(), created.ID)
 	c.Set("HX-Retarget", "#sessions-tbody")
 	c.Set("HX-Reswap", "afterbegin")
 	c.Set("HX-Trigger", "closeDialog")
@@ -90,7 +114,12 @@ func (h *SessionHandler) Edit(c *fiber.Ctx) error {
 	if err != nil {
 		return fiber.ErrNotFound
 	}
-	return render(c, pages.SessionFormDialog(*s, ""))
+	s.FishingTypes, _ = h.sessions.ListSessionFishingTypes(c.Context(), id)
+	allTypes, err := h.fishingTypes.List(c.Context())
+	if err != nil {
+		return err
+	}
+	return render(c, pages.SessionFormDialog(*s, allTypes, ""))
 }
 
 func (h *SessionHandler) Update(c *fiber.Ctx) error {
@@ -100,12 +129,20 @@ func (h *SessionHandler) Update(c *fiber.Ctx) error {
 	}
 	s, errMsg := sessionFromForm(c)
 	s.ID = id
+	allTypes, _ := h.fishingTypes.List(c.Context())
 	if errMsg != "" {
-		return render(c, pages.SessionFormDialog(s, errMsg))
+		s.FishingTypes, _ = h.sessions.ListSessionFishingTypes(c.Context(), id)
+		return render(c, pages.SessionFormDialog(s, allTypes, errMsg))
 	}
 	if err := h.sessions.Update(c.Context(), s); err != nil {
-		return render(c, pages.SessionFormDialog(s, err.Error()))
+		s.FishingTypes, _ = h.sessions.ListSessionFishingTypes(c.Context(), id)
+		return render(c, pages.SessionFormDialog(s, allTypes, err.Error()))
 	}
+	typeIDs := fishingTypeIDsFromForm(c)
+	if err := h.sessions.SetSessionFishingTypes(c.Context(), id, typeIDs); err != nil {
+		return err
+	}
+	s.FishingTypes, _ = h.sessions.ListSessionFishingTypes(c.Context(), id)
 	c.Set("HX-Retarget", fmt.Sprintf("#session-%d", id))
 	c.Set("HX-Reswap", "outerHTML")
 	c.Set("HX-Trigger", "closeDialog")
@@ -155,4 +192,93 @@ func sessionFromForm(c *fiber.Ctx) (models.FishingSession, string) {
 		s.Notes = &notes
 	}
 	return s, ""
+}
+
+
+func (h *SessionHandler) LocationPicker(c *fiber.Ctx) error {
+	if c.Get("HX-Request") == "" {
+		return c.Redirect("/")
+	}
+	id, err := c.ParamsInt("id")
+	if err != nil {
+		return fiber.ErrBadRequest
+	}
+	all, err := h.locations.List(c.Context())
+	if err != nil {
+		return err
+	}
+	linked, err := h.sessions.ListSessionLocations(c.Context(), id)
+	if err != nil {
+		return err
+	}
+	linkedSet := make(map[int]bool, len(linked))
+	for _, l := range linked {
+		linkedSet[l.ID] = true
+	}
+	var available []models.Location
+	for _, l := range all {
+		if !linkedSet[l.ID] {
+			available = append(available, l)
+		}
+	}
+	return render(c, pages.LocationPickerDialog(id, available))
+}
+
+func (h *SessionHandler) AddLocation(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
+	if err != nil {
+		return fiber.ErrBadRequest
+	}
+	locID, err := strconv.Atoi(c.FormValue("location_id"))
+	if err != nil || locID == 0 {
+		return fiber.ErrBadRequest
+	}
+	if err := h.sessions.AddLocation(c.Context(), id, locID); err != nil {
+		return err
+	}
+	loc, err := h.locations.Get(c.Context(), locID)
+	if err != nil {
+		return err
+	}
+	c.Set("HX-Retarget", "#locations-tbody")
+	c.Set("HX-Reswap", "beforeend")
+	c.Set("HX-Trigger", "closeLocationDialog")
+	return render(c, pages.SessionLocationRowPartial(id, *loc))
+}
+
+func (h *SessionHandler) RemoveLocation(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
+	if err != nil {
+		return fiber.ErrBadRequest
+	}
+	locID, err := c.ParamsInt("loc_id")
+	if err != nil {
+		return fiber.ErrBadRequest
+	}
+	if err := h.sessions.RemoveLocation(c.Context(), id, locID); err != nil {
+		return err
+	}
+	return c.SendStatus(fiber.StatusOK)
+}
+
+func fishingTypeIDsFromForm(c *fiber.Ctx) []int {
+	raw := c.Request().PostArgs().PeekMulti("fishing_type_id")
+	ids := make([]int, 0, len(raw))
+	for _, b := range raw {
+		if id, err := strconv.Atoi(string(b)); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
+
+func locationIDsFromForm(c *fiber.Ctx) []int {
+	raw := c.Request().PostArgs().PeekMulti("location_id")
+	ids := make([]int, 0, len(raw))
+	for _, b := range raw {
+		if id, err := strconv.Atoi(string(b)); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	return ids
 }
