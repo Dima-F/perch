@@ -2,7 +2,7 @@ package models
 
 import "time"
 
-type Technique struct {
+type FishingType struct {
 	ID   int    `db:"id"`
 	Name string `db:"name"`
 }
@@ -121,7 +121,7 @@ type Spool struct {
 type FishingSession struct {
 	ID        int        `db:"id"`
 	StartTime time.Time  `db:"start_time"`
-	EndTime   *time.Time `db:"end_time"`
+	EndTime   time.Time  `db:"end_time"`
 	Notes     *string    `db:"notes"`
 }
 

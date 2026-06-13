@@ -30,13 +30,13 @@ func main() {
 	lures := sqliterepo.NewLures(database)
 	lureModels := sqliterepo.NewLureModels(database)
 	lureTypes := sqliterepo.NewLureTypes(database)
-	techniques := sqliterepo.NewTechniques(database)
+	fishingTypes := sqliterepo.NewFishingTypes(database)
 	waterBodies := sqliterepo.NewWaterBodies(database)
 	waterBodyTypes := sqliterepo.NewWaterBodyTypes(database)
 	brands := sqliterepo.NewBrands(database)
 	fishSpecies := sqliterepo.NewFishSpecies(database)
 
-	h := handler.New(sessions, catches, locations, lures, lureModels, lureTypes, techniques, waterBodies, waterBodyTypes, brands, fishSpecies)
+	h := handler.New(sessions, catches, locations, lures, lureModels, lureTypes, fishingTypes, waterBodies, waterBodyTypes, brands, fishSpecies)
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {

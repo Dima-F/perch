@@ -5,10 +5,10 @@ import (
 	"perch/internal/models"
 )
 
-type Techniques interface {
-	List(ctx context.Context) ([]models.Technique, error)
-	Get(ctx context.Context, id int) (*models.Technique, error)
-	Create(ctx context.Context, name string) (*models.Technique, error)
+type FishingTypes interface {
+	List(ctx context.Context) ([]models.FishingType, error)
+	Get(ctx context.Context, id int) (*models.FishingType, error)
+	Create(ctx context.Context, name string) (*models.FishingType, error)
 	Update(ctx context.Context, id int, name string) error
 	Delete(ctx context.Context, id int) error
 }

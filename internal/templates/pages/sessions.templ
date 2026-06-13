@@ -2,7 +2,9 @@ package pages
 
 import (
 	"fmt"
+	"time"
 	"perch/internal/models"
+	"perch/internal/templates/components"
 	"perch/internal/templates/layouts"
 )
 
@@ -11,7 +13,15 @@ templ SessionsList(sessions []struct {
 	CatchCount int
 }) {
 	@layouts.Base("Сесії") {
-		<h1>Рибальські сесії</h1>
+		<div class="page-header">
+			<h2>Рибальські сесії</h2>
+			@components.BtnIconAction("plus", "Нова сесія", "", templ.Attributes{
+				"hx-get":    "/sessions/new",
+				"hx-target": "#dialog-content",
+				"hx-swap":   "innerHTML",
+				"onclick":   "document.getElementById('session-dialog').showModal()",
+			})
+		</div>
 		<table>
 			<thead>
 				<tr>
@@ -20,45 +30,132 @@ templ SessionsList(sessions []struct {
 					<th>Кінець</th>
 					<th>Улови</th>
 					<th>Нотатки</th>
+					<th></th>
 				</tr>
 			</thead>
-			<tbody>
+			<tbody id="sessions-tbody">
 				for _, s := range sessions {
-					<tr>
-						<td>
-							<a href={ templ.SafeURL(fmt.Sprintf("/sessions/%d", s.ID)) }>
-								{ s.StartTime.Format("02.01.2006") }
-							</a>
-						</td>
-						<td>{ s.StartTime.Format("15:04") }</td>
-						<td>
-							if s.EndTime != nil {
-								{ s.EndTime.Format("15:04") }
-							} else {
-								—
-							}
-						</td>
-						<td>{ fmt.Sprintf("%d", s.CatchCount) }</td>
-						<td>
-							if s.Notes != nil {
-								{ *s.Notes }
-							}
-						</td>
-					</tr>
+					@SessionRowPartial(s)
 				}
 			</tbody>
 		</table>
+		<dialog id="session-dialog">
+			<article>
+				<header>
+					<button type="button" rel="prev" onclick="this.closest('dialog').close()" aria-label="Закрити"></button>
+				</header>
+				<div id="dialog-content"></div>
+			</article>
+		</dialog>
+		<script>
+			document.body.addEventListener('closeDialog', () =>
+				document.getElementById('session-dialog').close()
+			)
+		</script>
 	}
 }
+
+templ SessionRowPartial(s struct {
+	models.FishingSession
+	CatchCount int
+}) {
+	<tr id={ fmt.Sprintf("session-%d", s.ID) }>
+		<td>
+			<a href={ templ.SafeURL(fmt.Sprintf("/sessions/%d", s.ID)) }>
+				{ s.StartTime.Format("02.01.2006") }
+			</a>
+		</td>
+		<td>{ s.StartTime.Format("15:04") }</td>
+		<td>{ s.EndTime.Format("15:04") }</td>
+		<td>{ fmt.Sprintf("%d", s.CatchCount) }</td>
+		<td>
+			if s.Notes != nil {
+				{ *s.Notes }
+			}
+		</td>
+		<td>
+			<div class="row-actions">
+				@components.BtnIconAction("pencil-outline", "Редагувати", "secondary outline btn-sm", templ.Attributes{
+					"hx-get":    fmt.Sprintf("/sessions/%d/edit", s.ID),
+					"hx-target": "#dialog-content",
+					"hx-swap":   "innerHTML",
+					"onclick":   "document.getElementById('session-dialog').showModal()",
+				})
+				@components.BtnIconAction("delete-outline", "Видалити", "outline danger btn-sm", templ.Attributes{
+					"hx-post":    fmt.Sprintf("/sessions/%d/delete", s.ID),
+					"hx-confirm": "Видалити сесію?",
+					"hx-target":  "closest tr",
+					"hx-swap":    "delete",
+				})
+			</div>
+		</td>
+	</tr>
+}
+
+templ SessionFormDialog(s models.FishingSession, errMsg string) {
+	<p><strong>{ sessionDialogTitle(s.ID) }</strong></p>
+	if errMsg != "" {
+		<p class="error">{ errMsg }</p>
+	}
+	<form hx-post={ sessionDialogAction(s.ID) } hx-target="#dialog-content" hx-swap="innerHTML">
+		<label for="dlg-session-start">
+			Початок
+			<input
+				id="dlg-session-start"
+				name="start_time"
+				type="datetime-local"
+				value={ sessionTimeValue(s.StartTime) }
+				required
+			/>
+		</label>
+		<label for="dlg-session-end">
+			Кінець
+			<input
+				id="dlg-session-end"
+				name="end_time"
+				type="datetime-local"
+				value={ sessionTimeValue(s.EndTime) }
+			required
+			/>
+		</label>
+		@components.InputTextarea("dlg-session-notes", "notes", "Нотатки", 3, s.Notes)
+		<div class="form-actions">
+			@components.BtnSubmit("content-save-outline", "Зберегти")
+			@components.BtnAction("close", "Скасувати", "secondary outline", templ.Attributes{
+				"onclick": "this.closest('dialog').close()",
+			})
+		</div>
+	</form>
+}
+
+func sessionDialogTitle(id int) string {
+	if id == 0 {
+		return "Нова сесія"
+	}
+	return "Редагувати сесію"
+}
+
+func sessionDialogAction(id int) string {
+	if id == 0 {
+		return "/sessions"
+	}
+	return fmt.Sprintf("/sessions/%d", id)
+}
+
+func sessionTimeValue(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.Format("2006-01-02T15:04")
+}
+
 
 templ SessionDetail(session *models.FishingSession, catches []models.Catch, locations []models.Location) {
 	@layouts.Base("Сесія") {
 		<h1>Сесія { session.StartTime.Format("02.01.2006") }</h1>
 		<p>
 			<strong>Початок:</strong> { session.StartTime.Format("15:04") }
-			if session.EndTime != nil {
-				— <strong>Кінець:</strong> { session.EndTime.Format("15:04") }
-			}
+			— <strong>Кінець:</strong> { session.EndTime.Format("15:04") }
 		</p>
 		if session.Notes != nil {
 			<p>{ *session.Notes }</p>

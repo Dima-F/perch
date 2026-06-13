@@ -22,7 +22,7 @@ func New(
 	lures *sqlite.LuresRepo,
 	lureModels *sqlite.LureModelsRepo,
 	lureTypes *sqlite.LureTypesRepo,
-	techniques *sqlite.TechniquesRepo,
+	fishingTypes *sqlite.FishingTypesRepo,
 	waterBodies *sqlite.WaterBodiesRepo,
 	waterBodyTypes *sqlite.WaterBodyTypesRepo,
 	brands *sqlite.BrandsRepo,

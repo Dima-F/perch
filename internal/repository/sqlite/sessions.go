@@ -131,5 +131,12 @@ func (r *SessionsRepo) RemoveLocation(ctx context.Context, sessionID, locationID
 	return err
 }
 
-// DBSessions повертає sql.DB для використання у ListWithCatchCount з зовнішніх пакетів
+func (r *SessionsRepo) GetCatchCount(ctx context.Context, sessionID int) (int, error) {
+	var count int
+	err := r.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM catches WHERE session_id = ?`, sessionID).Scan(&count)
+	return count, err
+}
+
+// DB повертає sql.DB для зовнішнього використання
 func (r *SessionsRepo) DB() *sql.DB { return r.db }

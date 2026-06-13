@@ -2,10 +2,14 @@
 
 ```mermaid
 erDiagram
+    water_body_type {
+        int id PK
+        text name
+    }
     water_body {
         int id PK
         text name
-        text type
+        int water_body_type_id FK
     }
     locations {
         int id PK
@@ -14,7 +18,7 @@ erDiagram
         text notes
         int waterbody_id FK
     }
-    techniques {
+    fishing_types {
         int id PK
         text name
     }
@@ -53,9 +57,9 @@ erDiagram
         datetime end_time
         text notes
     }
-    session_techniques {
+    session_fishing_types {
         int session_id FK
-        int technique_id FK
+        int fishing_type_id FK
     }
     session_locations {
         int session_id FK
@@ -123,14 +127,15 @@ erDiagram
         int braid_id FK
     }
 
-    water_body    ||--o{ locations         : "водойма"
+    water_body_type ||--o{ water_body       : "тип"
+    water_body      ||--o{ locations        : "водойма"
     brands        |o--o{ models            : "бренд"
     lure_types    ||--o{ models            : "тип"
     models        ||--o{ lures             : "модель"
-    fishing_sessions ||--o{ session_techniques : ""
-    techniques       ||--o{ session_techniques : ""
-    fishing_sessions ||--o{ session_locations  : ""
-    locations        ||--o{ session_locations  : ""
+    fishing_sessions ||--o{ session_fishing_types : "тип"
+    fishing_types    ||--o{ session_fishing_types : "тип"
+    fishing_sessions ||--o{ session_locations  : "локація"
+    locations        ||--o{ session_locations  : "локація"
     fishing_sessions ||--o{ catches         : "сесія"
     fish_species     ||--o{ catches         : "вид"
     lures            |o--o{ catches         : "приманка"
@@ -139,8 +144,8 @@ erDiagram
     brands        |o--o{ reels              : "бренд"
     brands        ||--o{ braided_lines      : "бренд"
     reels         ||--o{ spools             : "котушка"
-    spools        ||--o| spool_braid        : ""
-    braided_lines ||--o| spool_braid        : ""
+    spools        ||--o| spool_braid        : "шпуля"
+    braided_lines ||--o| spool_braid        : "плетінка"
 ```
 
 ## Примітки до обмежень
